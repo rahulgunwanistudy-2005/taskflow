@@ -29,15 +29,12 @@ services:
       - key: REFRESH_TOKEN_EXPIRE_DAYS
         value: "7"
 
-  - type: static
+  - type: web
     name: taskflow-ui
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: no-cache
     routes:
       - type: rewrite
         source: /*
