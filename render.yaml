@@ -1,0 +1,78 @@
+# Render Blueprint — deploys backend API + frontend + managed Postgres
+# One file → three resources created automatically.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+
+  # ── Backend API (Python web service) ──────────────────────────────────────
+  - type: web
+    name: taskflow-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: taskflow-db
+          property: connectionString
+
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+
+      - key: ENVIRONMENT
+        value: production
+
+      - key: DEBUG
+        value: "false"
+
+      # Update this after your first deploy to match the actual frontend URL
+      # Format: ["https://taskflow-ui.onrender.com"]
+      - key: ALLOWED_ORIGINS
+        value: '["https://taskflow-ui.onrender.com","http://localhost:5173"]'
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+
+  # ── Frontend (Static Site) ─────────────────────────────────────────────────
+  - type: web
+    name: taskflow-ui
+    runtime: static
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    envVars:
+      # Points the frontend at the backend API — no trailing slash
+      - key: VITE_API_URL
+        value: https://taskflow-api.onrender.com
+
+# ── Database ────────────────────────────────────────────────────────────────
+databases:
+  - name: taskflow-db
+    databaseName: taskflow
+    user: taskflow
+    region: oregon
+    plan: free
