@@ -41,7 +41,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://taskflow-api.onrender.com
+        value: https://taskflow-api-tup7.onrender.com
 
 databases:
   - name: taskflow-db
